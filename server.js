@@ -1,10 +1,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const complaintRoutes = require("./routes/complaints");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/complaints", complaintRoutes);
 
 // =========================
 // MODELS
