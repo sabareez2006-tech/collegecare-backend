@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Complaint = require("../models/Complaint");
+const Counter = require("../models/Counter");
 
 // =========================
 // ADMIN DASHBOARD STATS
@@ -22,30 +23,43 @@ router.get("/admin/dashboard", async (req, res) => {
 // GET ALL COMPLAINTS
 // =========================
 router.get("/", async (req, res) => {
-  const complaints = await Complaint.find();
+  const complaints = await Complaint.find().sort({ complaintId: 1 });
   res.json(complaints);
 });
 
 // =========================
-// CREATE NEW COMPLAINT
+// CREATE NEW COMPLAINT (AUTO-INCREMENT ID)
 // =========================
 router.post("/", async (req, res) => {
-  const { studentName, category, description } = req.body;
+  try {
+    const { studentName, category, description } = req.body;
 
-  const newComplaint = new Complaint({
-    complaintId: Math.floor(Math.random() * 100000),
-    studentName,
-    category,
-    description,
-    status: "Pending",
-  });
+    // 🔢 Auto-increment logic
+    const counter = await Counter.findOneAndUpdate(
+      { name: "complaintId" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
 
-  await newComplaint.save();
+    const newComplaint = new Complaint({
+      complaintId: counter.seq,
+      studentName,
+      category,
+      description,
+      status: "Pending"
+    });
 
-  res.json({
-    message: "Complaint submitted successfully",
-    complaint: newComplaint,
-  });
+    await newComplaint.save();
+
+    res.json({
+      message: "Complaint submitted successfully",
+      complaint: newComplaint
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error creating complaint" });
+  }
 });
 
 // =========================
@@ -66,7 +80,7 @@ router.put("/:id", async (req, res) => {
 
   res.json({
     message: "Status updated successfully",
-    updated: updatedComplaint,
+    updated: updatedComplaint
   });
 });
 
